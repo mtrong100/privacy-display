@@ -149,7 +149,7 @@ public class OverlayService extends Service implements SensorEventListener {
         // Slider 20–100 maps to alpha 0.55–0.82
         // 0.55 = visible but not too dark; 0.82 = comfortably dark without screen brightness trick
         int pct = p.getInt(Prefs.ALPHA, 88);
-        targetAlpha = 0.55f + (pct - 20) / 80f * 0.27f;
+        targetAlpha = 0.65f + (pct - 20) / 80f * 0.27f;
     }
 
     private void addOverlay() {
@@ -291,7 +291,7 @@ public class OverlayService extends Service implements SensorEventListener {
                 // Gentle brightness dim: at max alpha → brightness 0.15 (not pitch black)
                 // This fills the gap left by status/nav bars without being too extreme
                 float ratio = alpha / targetAlpha; // 0.0–1.0
-                overlayLp.screenBrightness = Math.max(0.15f, 1.0f - ratio * 0.85f);
+                overlayLp.screenBrightness = Math.max(0.08f, 1.0f - ratio * 0.92f);
             }
             try {
                 windowManager.updateViewLayout(overlayView, overlayLp);
