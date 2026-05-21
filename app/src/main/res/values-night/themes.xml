@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PrivacyDisplay" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/md_primary_dark</item>
+        <item name="colorOnPrimary">@color/md_on_primary_dark</item>
+        <item name="colorPrimaryContainer">@color/md_primary_container_dark</item>
+        <item name="colorOnPrimaryContainer">@color/md_on_primary_container_dark</item>
+        <item name="colorSecondaryContainer">@color/md_secondary_container_dark</item>
+        <item name="colorOnSecondaryContainer">@color/md_on_secondary_container_dark</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

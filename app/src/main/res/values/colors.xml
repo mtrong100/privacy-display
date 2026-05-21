@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light mode -->
+    <color name="md_primary">#1A6FD4</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#D6E3FF</color>
+    <color name="md_on_primary_container">#001A41</color>
+    <color name="md_secondary_container">#DAE2F9</color>
+    <color name="md_on_secondary_container">#141B2C</color>
+
+    <!-- Dark mode -->
+    <color name="md_primary_dark">#AAC7FF</color>
+    <color name="md_on_primary_dark">#003068</color>
+    <color name="md_primary_container_dark">#004494</color>
+    <color name="md_on_primary_container_dark">#D6E3FF</color>
+    <color name="md_secondary_container_dark">#3A4663</color>
+    <color name="md_on_secondary_container_dark">#DAE2F9</color>
+
+    <!-- Status indicator -->
+    <color name="dot_active">#1DB954</color>
+    <color name="dot_inactive">#9E9E9E</color>
+</resources>

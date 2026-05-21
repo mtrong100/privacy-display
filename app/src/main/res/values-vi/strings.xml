@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Privacy Display</string>
+
+    <!-- Feature -->
+    <string name="feature_name">Màn hình riêng tư</string>
+    <string name="feature_desc">Làm tối màn hình khi nghiêng điện thoại</string>
+
+    <!-- Status -->
+    <string name="status_active">Đang hoạt động — theo dõi góc nghiêng</string>
+    <string name="status_inactive">Đã tắt</string>
+
+    <!-- Section headers -->
+    <string name="section_settings">Cài đặt</string>
+
+    <!-- Sensitivity -->
+    <string name="label_sensitivity">Độ nhạy: %1$s (%2$d°)</string>
+    <string name="sens_very_high">Rất cao</string>
+    <string name="sens_high">Cao</string>
+    <string name="sens_medium">Trung bình</string>
+    <string name="sens_low">Thấp</string>
+
+    <!-- Darkness -->
+    <string name="label_darkness">Độ tối màn hình: %1$d%%</string>
+
+    <!-- Auto start -->
+    <string name="auto_start_title">Tự khởi động</string>
+    <string name="auto_start_desc">Tự bật khi khởi động điện thoại</string>
+
+    <!-- Permission -->
+    <string name="perm_required">Cần cấp quyền</string>
+    <string name="perm_desc">Cần quyền hiển thị trên ứng dụng khác</string>
+    <string name="perm_grant">Cấp quyền</string>
+    <string name="perm_denied">Quyền bị từ chối — ứng dụng không thể hoạt động</string>
+
+    <!-- Tip -->
+    <string name="tip_battery">Để Samsung không tắt app, vào Cài đặt → Ứng dụng → ShieldView → Pin → chọn Không hạn chế.</string>
+
+    <!-- Notification -->
+    <string name="notif_channel_name">Dịch vụ ShieldView</string>
+    <string name="notif_title">ShieldView đang chạy</string>
+    <string name="notif_desc">Đang theo dõi góc nghiêng để bảo vệ màn hình</string>
+    <string name="notif_stop">Tắt</string>
+
+    <!-- Menu -->
+    <string name="menu_theme">Giao diện</string>
+    <string name="menu_theme_light">Sáng</string>
+    <string name="menu_theme_dark">Tối</string>
+    <string name="menu_theme_system">Theo hệ thống</string>
+    <string name="menu_language">Ngôn ngữ</string>
+</resources>

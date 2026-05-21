@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Privacy Display</string>
+
+    <!-- Feature -->
+    <string name="feature_name">Privacy Shield</string>
+    <string name="feature_desc">Darkens screen when phone is tilted</string>
+
+    <!-- Status -->
+    <string name="status_active">Active — watching for tilt</string>
+    <string name="status_inactive">Inactive</string>
+
+    <!-- Section headers -->
+    <string name="section_settings">Adjustments</string>
+
+    <!-- Sensitivity -->
+    <string name="label_sensitivity">Sensitivity: %1$s (%2$d°)</string>
+    <string name="sens_very_high">Very High</string>
+    <string name="sens_high">High</string>
+    <string name="sens_medium">Medium</string>
+    <string name="sens_low">Low</string>
+
+    <!-- Darkness -->
+    <string name="label_darkness">Screen darkness: %1$d%%</string>
+
+    <!-- Auto start -->
+    <string name="auto_start_title">Launch on boot</string>
+    <string name="auto_start_desc">Start automatically when device powers on</string>
+
+    <!-- Permission -->
+    <string name="perm_required">Permission needed</string>
+    <string name="perm_desc">Overlay permission is required to cover the screen</string>
+    <string name="perm_grant">Grant</string>
+    <string name="perm_denied">Permission denied — app cannot function</string>
+
+    <!-- Tip -->
+    <string name="tip_battery">To prevent Samsung from stopping this app, go to Settings → Apps → ShieldView → Battery → set to Unrestricted.</string>
+
+    <!-- Notification -->
+    <string name="notif_channel_name">ShieldView Service</string>
+    <string name="notif_title">ShieldView is active</string>
+    <string name="notif_desc">Monitoring tilt to protect your screen</string>
+    <string name="notif_stop">Stop</string>
+
+    <!-- Menu -->
+    <string name="menu_theme">Theme</string>
+    <string name="menu_theme_light">Light</string>
+    <string name="menu_theme_dark">Dark</string>
+    <string name="menu_theme_system">Follow system</string>
+    <string name="menu_language">Language</string>
+</resources>
