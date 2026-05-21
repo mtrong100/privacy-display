@@ -40,32 +40,34 @@ public class OverlayService extends Service implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor        accelerometer;
 
-    private WindowManager          windowManager;
-    private View                   overlayView;
+    private WindowManager              windowManager;
+    private View                       overlayView;
     private WindowManager.LayoutParams overlayLp;
-    private boolean                overlayAdded = false;
-    private ValueAnimator          currentAnim  = null;
-    private final Handler          mainHandler  = new Handler(Looper.getMainLooper());
+    private boolean                    overlayAdded = false;
+    private ValueAnimator              currentAnim  = null;
+    private final Handler              mainHandler  = new Handler(Looper.getMainLooper());
 
-    // Current animated alpha value (0.0 – 1.0)
+    // Tracks actual displayed alpha (updated during animation)
     private float currentAlpha = 0f;
 
     // Settings
     private int   tiltThresholdDeg = 25;
-    private float targetAlpha      = 0.95f;  // max darkness
+    // Max alpha: 0.78 = noticeably dark but not pitch black
+    // Slider maps 20–100% → 0.55–0.82f
+    private float targetAlpha = 0.78f;
 
-    // Sensor: fast filter for quick response
+    // Sensor low-pass filter
     private final float[] lpf = new float[3];
-    // α=0.25 → responsive but still smoothed (higher than before)
     private static final float LPF_A = 0.25f;
+    // BUG FIX: seed flag — don't evaluate tilt until we have real sensor data
+    private boolean lpfReady = false;
+    private int     lpfWarmup = 0; // count samples before trusting lpf
 
     // Hysteresis
     private boolean tilted       = false;
     private long    lastChangeMs = 0;
-    // Reduced to 300ms — faster response
     private static final long MIN_STATE_MS = 300;
 
-    // Fast fades
     private static final long FADE_IN_MS  = 200;
     private static final long FADE_OUT_MS = 180;
 
@@ -82,9 +84,10 @@ public class OverlayService extends Service implements SensorEventListener {
 
     private void buildOverlayView() {
         overlayView = new View(this);
-        // Pure black background
         overlayView.setBackgroundColor(0xFF000000);
+        // Start fully transparent — no darkness at all until sensor confirms tilt
         overlayView.setAlpha(0f);
+        currentAlpha = 0f;
 
         int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
@@ -97,26 +100,23 @@ public class OverlayService extends Service implements SensorEventListener {
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 flags,
-                PixelFormat.OPAQUE);  // OPAQUE = no compositing overhead, true black
+                PixelFormat.TRANSLUCENT);
 
         overlayLp.gravity = Gravity.TOP | Gravity.START;
         overlayLp.x = 0;
         overlayLp.y = 0;
 
-        // KEY FIX: extend into display cutout (notch/status bar/nav bar areas)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        // Cover display cutout (notch), status bar, and nav bar
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            overlayLp.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             overlayLp.layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+: ALWAYS extend into cutout
-            overlayLp.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
-        }
 
-        // KEY FIX: set screen brightness to minimum via WindowManager
-        // -1 = use system brightness (normal), 0.0 = minimum
-        // We'll animate this alongside alpha for true darkness
+        // Screen brightness: NONE = don't override (leave at system level)
+        // We only dim screen when overlay is actually shown
         overlayLp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
     }
 
@@ -146,9 +146,10 @@ public class OverlayService extends Service implements SensorEventListener {
     private void reloadSettings() {
         SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
         tiltThresholdDeg = p.getInt(Prefs.TILT, 25);
-        // Map slider 20-100 → alpha 0.70-1.0 so even "low" setting is noticeably dark
+        // Slider 20–100 maps to alpha 0.55–0.82
+        // 0.55 = visible but not too dark; 0.82 = comfortably dark without screen brightness trick
         int pct = p.getInt(Prefs.ALPHA, 88);
-        targetAlpha = 0.70f + (pct - 20) / 80f * 0.30f;
+        targetAlpha = 0.55f + (pct - 20) / 80f * 0.27f;
     }
 
     private void addOverlay() {
@@ -198,9 +199,6 @@ public class OverlayService extends Service implements SensorEventListener {
     // ── Sensor ────────────────────────────────────────────────────────────────
     private void registerSensor() {
         if (accelerometer == null) return;
-        // SENSOR_DELAY_GAME = ~20ms between samples — fast enough for smooth response
-        // maxReportLatency = 0 — deliver immediately, no batching
-        // Battery impact is minimal since we unregister when not needed
         sensorManager.registerListener(this, accelerometer,
                 SensorManager.SENSOR_DELAY_GAME, 0);
     }
@@ -209,18 +207,33 @@ public class OverlayService extends Service implements SensorEventListener {
     public void onSensorChanged(SensorEvent e) {
         if (e.sensor.getType() != Sensor.TYPE_ACCELEROMETER) return;
 
+        // BUG FIX: seed lpf with first real reading so phone starts "upright"
+        // instead of treating 0,0,0 as valid and computing wrong angle
+        if (!lpfReady) {
+            lpf[0] = e.values[0];
+            lpf[1] = e.values[1];
+            lpf[2] = e.values[2];
+            lpfWarmup++;
+            // Wait for 5 samples (~100ms at SENSOR_DELAY_GAME) before trusting data
+            if (lpfWarmup >= 5) lpfReady = true;
+            return; // don't evaluate tilt during warmup
+        }
+
         lpf[0] += LPF_A * (e.values[0] - lpf[0]);
         lpf[1] += LPF_A * (e.values[1] - lpf[1]);
         lpf[2] += LPF_A * (e.values[2] - lpf[2]);
 
+        // Tilt angle from vertical: 0° = upright, 90° = lying flat/sideways
         double angle = Math.toDegrees(Math.atan2(
                 Math.abs(lpf[0]),
                 Math.sqrt(lpf[1] * lpf[1] + lpf[2] * lpf[2])));
 
         long now = System.currentTimeMillis();
+
+        // Hysteresis: wider gap on the OFF side prevents oscillation at boundary
         boolean shouldDarken = tilted
-                ? angle >= (tiltThresholdDeg - 7)
-                : angle >= tiltThresholdDeg;
+                ? angle >= (tiltThresholdDeg - 7)   // stay dark if still somewhat tilted
+                : angle >= tiltThresholdDeg;          // go dark only when clearly tilted
 
         if (shouldDarken != tilted && (now - lastChangeMs) >= MIN_STATE_MS) {
             tilted       = shouldDarken;
@@ -264,25 +277,21 @@ public class OverlayService extends Service implements SensorEventListener {
         anim.start();
     }
 
-    /**
-     * Apply alpha to overlay view AND dim screen brightness simultaneously.
-     * This is the key to true full-screen darkness including status/nav bars.
-     */
     private void applyAlpha(float alpha) {
         if (overlayView == null || !overlayAdded) return;
         overlayView.setAlpha(alpha);
 
-        // Also control screen brightness:
-        // When fully dark (alpha=targetAlpha), brightness = 0.01 (near-black)
-        // When hidden (alpha=0), brightness = normal (-1)
+        // Dim screen brightness proportionally — covers status bar & nav bar backlight
+        // Only active when overlay is visible (alpha > 0)
         if (overlayLp != null) {
-            if (alpha <= 0.01f) {
+            if (alpha < 0.02f) {
+                // Fully hidden — restore system brightness
                 overlayLp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
             } else {
-                // Dim brightness proportional to overlay alpha
-                // At max alpha, brightness approaches minimum (0.01)
-                float dimFactor = alpha / targetAlpha; // 0.0–1.0
-                overlayLp.screenBrightness = Math.max(0.01f, 1.0f - dimFactor * 0.99f);
+                // Gentle brightness dim: at max alpha → brightness 0.15 (not pitch black)
+                // This fills the gap left by status/nav bars without being too extreme
+                float ratio = alpha / targetAlpha; // 0.0–1.0
+                overlayLp.screenBrightness = Math.max(0.15f, 1.0f - ratio * 0.85f);
             }
             try {
                 windowManager.updateViewLayout(overlayView, overlayLp);
@@ -297,7 +306,7 @@ public class OverlayService extends Service implements SensorEventListener {
         sensorManager.unregisterListener(this);
         if (currentAnim != null) currentAnim.cancel();
         if (overlayAdded && overlayView != null) {
-            // Restore brightness before removing
+            // Always restore brightness on exit
             overlayLp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
             try { windowManager.updateViewLayout(overlayView, overlayLp); } catch (Exception ignored) {}
             try { windowManager.removeView(overlayView); } catch (Exception ignored) {}
